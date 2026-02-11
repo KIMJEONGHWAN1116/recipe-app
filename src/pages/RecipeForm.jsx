@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useRecipes from "../hooks/useRecipes.js";
 
@@ -28,18 +28,28 @@ export default function RecipeForm({ mode }) {
   const { add, update, getById } = useRecipes();
 
   const editing = mode === "edit";
-  const target = useMemo(() => (editing ? getById(id) : null), [editing, id, getById]);
+  const target = useMemo(
+    () => (editing ? getById(id) : null),
+    [editing, id, getById]
+  );
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
-  const [ingredients, setIngredients] = useState([]); 
+  // ✅ 材料選択（チェックボックス）
+  const [ingredients, setIngredients] = useState([]); // string[]
 
+  // ✅ 作り方（1行に1つ）
   const [stepsText, setStepsText] = useState("");
 
+  // ✅ タグ
   const [tagsText, setTagsText] = useState("");
 
+  // ✅ 写真アップロード（base64）
   const [image, setImage] = useState("");
+  const [fileName, setFileName] = useState(""); // ✅ 表示用ファイル名
+
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!editing) return;
@@ -51,6 +61,7 @@ export default function RecipeForm({ mode }) {
     setStepsText((target.steps || []).join("\n"));
     setTagsText((target.tags || []).map(t => `#${t}`).join(", "));
     setImage(target.image || "");
+    setFileName(""); // 編集時は既存画像の元ファイル名が不明なので空にする
   }, [editing, target]);
 
   if (editing && !target) {
@@ -72,10 +83,16 @@ export default function RecipeForm({ mode }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // ファイルが大きすぎる場合を防止（目安：2MB以下）
     if (file.size > 2 * 1024 * 1024) {
       alert("写真が大きすぎます（2MB以下を推奨）。もっと小さい画像を選んでください！");
+      // 同じファイルを選び直せるようにリセット
+      e.target.value = "";
+      setFileName("");
       return;
     }
+
+    setFileName(file.name);
 
     const reader = new FileReader();
     reader.onload = () => setImage(String(reader.result));
@@ -105,7 +122,7 @@ export default function RecipeForm({ mode }) {
       nav(`/recipes/${target.id}`);
     } else {
       const newId = add(payload);
-      nav(`/recipes/${newId}`); 
+      nav(`/recipes/${newId}`); // ✅ 保存後、詳細へ移動
     }
   };
 
@@ -116,12 +133,20 @@ export default function RecipeForm({ mode }) {
       <form className="form" onSubmit={onSubmit}>
         <label className="label">
           タイトル *
-          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input
+            className="input"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
         </label>
 
         <label className="label">
           説明
-          <textarea className="textarea" value={description} onChange={(e) => setDescription(e.target.value)} />
+          <textarea
+            className="textarea"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
         </label>
 
         <div className="label">
@@ -140,10 +165,25 @@ export default function RecipeForm({ mode }) {
           </div>
         </div>
 
-        <label className="label">
+        {/* ✅ ファイル入力は隠して、表示は日本語ボタンにする */}
+        <div className="label">
           写真を登録（任意）
-          <input type="file" accept="image/*" onChange={onPickImage} />
-        </label>
+          <div className="row">
+            <label className="btn" style={{ cursor: "pointer" }}>
+              画像を選択
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={onPickImage}
+                style={{ display: "none" }}
+              />
+            </label>
+            <span className="muted">
+              {fileName ? fileName : "未選択"}
+            </span>
+          </div>
+        </div>
 
         {image && (
           <img
@@ -155,17 +195,27 @@ export default function RecipeForm({ mode }) {
 
         <label className="label">
           作り方 *（1行に1つ）
-          <textarea className="textarea" value={stepsText} onChange={(e) => setStepsText(e.target.value)} />
+          <textarea
+            className="textarea"
+            value={stepsText}
+            onChange={(e) => setStepsText(e.target.value)}
+          />
         </label>
 
         <label className="label">
           タグ（カンマ区切り、例：#チキン, #ダイエット）
-          <input className="input" value={tagsText} onChange={(e) => setTagsText(e.target.value)} />
+          <input
+            className="input"
+            value={tagsText}
+            onChange={(e) => setTagsText(e.target.value)}
+          />
         </label>
 
         <div className="row">
           <button className="btn" type="submit">{editing ? "保存" : "追加"}</button>
-          <button className="btn btn--ghost" type="button" onClick={() => nav(-1)}>キャンセル</button>
+          <button className="btn btn--ghost" type="button" onClick={() => nav(-1)}>
+            キャンセル
+          </button>
         </div>
       </form>
     </section>
