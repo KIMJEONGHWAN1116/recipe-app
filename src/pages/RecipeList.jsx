@@ -21,14 +21,14 @@ export default function RecipeList() {
   return (
     <section className="stack">
       <div className="row row--between">
-        <h2>레시피 목록</h2>
-        <Link className="btn" to="/recipes/new">+ 추가</Link>
+        <h2>レシピ一覧</h2>
+        <Link className="btn" to="/recipes/new">+ 追加</Link>
       </div>
 
       <SearchBar value={q} onChange={setQ} />
 
       {filtered.length === 0 ? (
-        <p className="muted">레시피가 없어요. 새로 추가해볼까?</p>
+        <p className="muted">レシピがありません。新しく追加してみませんか？</p>
       ) : (
         <ul className="grid">
           {filtered.map(r => <RecipeCard key={r.id} recipe={r} />)}
